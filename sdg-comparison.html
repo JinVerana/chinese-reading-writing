@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDGs 目標選擇統計｜三班比較</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F4EE;
+    --ink:#232A26;
+    --muted:#726B5E;
+    --rule:#DAD5C5;
+    --single:#9C6B2E;      /* Mon23 */
+    --single-track:#EFE6D6;
+    --multi:#33636B;       /* Tue23 */
+    --multi-track:#DEE7E6;
+    --tri:#9C4B3A;         /* Tue45 */
+    --tri-track:#EEDBD6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Noto Sans TC", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:800px;
+    margin:0 auto;
+    padding:64px 28px 96px;
+  }
+  .masthead{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:22px;
+    margin-bottom:40px;
+  }
+  .masthead .eyebrow{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+  .masthead h1{
+    font-family:"Noto Serif TC", serif;
+    font-weight:700;
+    font-size:clamp(24px, 4vw, 32px);
+    line-height:1.35;
+    margin:0 0 14px;
+  }
+  .masthead .meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 22px;
+    font-size:13.5px;
+    color:var(--muted);
+  }
+  .masthead .meta strong{ color:var(--ink); font-weight:600; }
+
+  section{ margin-bottom:56px; }
+  section:last-of-type{ margin-bottom:0; }
+
+  h2{
+    font-family:"Noto Serif TC", serif;
+    font-weight:600;
+    font-size:19px;
+    margin:0 0 4px;
+  }
+  .section-note{
+    font-size:12.5px;
+    color:var(--muted);
+    margin:0 0 20px;
+  }
+
+  /* ---- Table ---- */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  thead th{
+    text-align:left;
+    font-weight:600;
+    font-size:12.5px;
+    color:var(--muted);
+    padding:0 10px 10px 10px;
+    border-bottom:2px solid var(--ink);
+  }
+  thead th.num{ text-align:right; }
+  tbody td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--rule);
+  }
+  tbody td.num{
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+    font-weight:600;
+  }
+  tbody td.idx{
+    color:var(--muted);
+    width:34px;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+
+  /* ---- Interactive chart (screen) ---- */
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:28px;
+  }
+  .tab-btn{
+    font-family:"Noto Sans TC", sans-serif;
+    font-size:14px;
+    font-weight:600;
+    padding:8px 18px;
+    border:1.5px solid var(--rule);
+    background:transparent;
+    color:var(--muted);
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .tab-btn.active[data-class="Mon23"]{ border-color:var(--single); color:var(--single); background:var(--single-track); }
+  .tab-btn.active[data-class="Tue23"]{ border-color:var(--multi); color:var(--multi); background:var(--multi-track); }
+  .tab-btn.active[data-class="Tue45"]{ border-color:var(--tri); color:var(--tri); background:var(--tri-track); }
+
+  .chart-wrap{ display:flex; }
+  .y-axis{
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    width:28px;
+    height:220px;
+    font-size:11px;
+    color:var(--muted);
+    text-align:right;
+    padding-right:6px;
+    flex-shrink:0;
+  }
+  .chart{
+    position:relative;
+    flex:1;
+    height:220px;
+    display:flex;
+    align-items:flex-end;
+    gap:6px;
+    border-left:1px solid var(--rule);
+    border-bottom:1px solid var(--ink);
+    padding-left:4px;
+  }
+  .gridline{ position:absolute; left:0; right:0; border-top:1px dashed var(--rule); }
+  .bar-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    height:100%;
+    position:relative;
+  }
+  .bar-val{
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:3px;
+    font-variant-numeric:tabular-nums;
+  }
+  .bar{
+    width:100%;
+    max-width:26px;
+    border-radius:2px 2px 0 0;
+    transition:height .35s ease, background-color .35s ease;
+  }
+  .x-labels{ display:flex; gap:6px; margin-left:32px; margin-top:6px; }
+  .x-labels span{
+    flex:1;
+    text-align:center;
+    font-size:11px;
+    color:var(--muted);
+    max-width:26px;
+  }
+
+  /* ---- Static print comparison (always in DOM; hidden on screen) ---- */
+  .print-charts{ display:none; }
+  .print-chart-block{ margin-bottom:28px; }
+  .print-chart-label{
+    font-family:"Noto Serif TC", serif;
+    font-weight:600;
+    font-size:14px;
+    margin-bottom:8px;
+  }
+  .print-chart-row{ display:flex; }
+  .print-yaxis{
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    width:28px;
+    height:150px;
+    font-size:10px;
+    color:var(--muted);
+    text-align:right;
+    padding-right:6px;
+    flex-shrink:0;
+  }
+  .print-chart{
+    flex:1;
+    height:150px;
+    display:flex;
+    align-items:flex-end;
+    gap:4px;
+    border-left:1px solid var(--rule);
+    border-bottom:1px solid var(--ink);
+    padding-left:4px;
+  }
+  .print-bar-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    height:100%;
+  }
+  .print-bar-val{
+    font-size:9px;
+    font-weight:600;
+    margin-bottom:2px;
+  }
+  .print-bar{
+    width:100%;
+    max-width:20px;
+    border-radius:2px 2px 0 0;
+  }
+  .print-xlabels{ display:flex; gap:4px; margin-left:32px; margin-top:4px; }
+  .print-xlabels span{
+    flex:1;
+    text-align:center;
+    font-size:9px;
+    color:var(--muted);
+  }
+
+  footer{
+    margin-top:48px;
+    padding-top:20px;
+    border-top:1px solid var(--rule);
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  @media print{
+    .tabs, .chart-wrap, .x-labels, .section-note.screen-only{ display:none !important; }
+    .print-charts{ display:block !important; }
+    section{ page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="eyebrow">SDGs 目標選擇統計・三班比較</div>
+    <h1>同學們各自選了哪一個 SDG 目標深入探討？</h1>
+    <div class="meta">
+      <span>Mon23 <strong>49</strong> 人</span>
+      <span>Tue23 <strong>49</strong> 人</span>
+      <span>Tue45 <strong>50</strong> 人</span>
+      <span>合計 <strong>154</strong> 次選擇</span>
+    </div>
+  </div>
+
+  <!-- Section 1: static table -->
+  <section>
+    <h2>各目標被選次數（三班合計）</h2>
+    <p class="section-note">依 SDG 1–17 排列，數字為三班加總後的總選擇次數</p>
+    <table>
+      <thead>
+        <tr><th class="num">#</th><th>目標</th><th class="num">總次數</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="idx">1</td><td>終結貧窮</td><td class="num">1</td></tr>
+        <tr><td class="idx">2</td><td>消除飢餓</td><td class="num">6</td></tr>
+        <tr><td class="idx">3</td><td>健康福祉</td><td class="num">14</td></tr>
+        <tr><td class="idx">4</td><td>優質教育</td><td class="num">22</td></tr>
+        <tr><td class="idx">5</td><td>性別平等</td><td class="num">10</td></tr>
+        <tr><td class="idx">6</td><td>淨水衛生</td><td class="num">6</td></tr>
+        <tr><td class="idx">7</td><td>可負擔能源</td><td class="num">2</td></tr>
+        <tr><td class="idx">8</td><td>就業與經濟成長</td><td class="num">6</td></tr>
+        <tr><td class="idx">9</td><td>產業創新與基礎建設</td><td class="num">3</td></tr>
+        <tr><td class="idx">10</td><td>減少不平等</td><td class="num">5</td></tr>
+        <tr><td class="idx">11</td><td>永續城市與社區</td><td class="num">11</td></tr>
+        <tr><td class="idx">12</td><td>責任消費與生產</td><td class="num">33</td></tr>
+        <tr><td class="idx">13</td><td>氣候行動</td><td class="num">6</td></tr>
+        <tr><td class="idx">14</td><td>海洋生態</td><td class="num">13</td></tr>
+        <tr><td class="idx">15</td><td>陸地生態</td><td class="num">9</td></tr>
+        <tr><td class="idx">16</td><td>和平正義與制度</td><td class="num">6</td></tr>
+        <tr><td class="idx">17</td><td>全球夥伴關係</td><td class="num">1</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 2: interactive (screen) + static (print) comparison chart -->
+  <section>
+    <h2>三班選擇分布比較</h2>
+    <p class="section-note screen-only">點選班級，觀察同一目標在不同班級之間的消長</p>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="chart-wrap">
+      <div class="y-axis" id="yAxis"></div>
+      <div class="chart" id="chart"></div>
+    </div>
+    <div class="x-labels" id="xLabels"></div>
+
+    <!-- static fallback / print version, pre-rendered, no JS needed -->
+    <div class="print-charts">
+
+      <div class="print-chart-block">
+        <div class="print-chart-label" style="color:#9C6B2E">Mon23</div>
+        <div class="print-chart-row">
+          <div class="print-yaxis"><div>16</div><div>12</div><div>8</div><div>4</div><div>0</div></div>
+          <div class="print-chart">
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">9</div><div class="print-bar" style="height:56.3%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">4</div><div class="print-bar" style="height:25.0%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">11</div><div class="print-bar" style="height:68.8%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">5</div><div class="print-bar" style="height:31.3%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C6B2E"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">0</div><div class="print-bar" style="height:0%;background:#9C6B2E"></div></div>
+          </div>
+        </div>
+        <div class="print-xlabels">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+        </div>
+      </div>
+
+      <div class="print-chart-block">
+        <div class="print-chart-label" style="color:#33636B">Tue23</div>
+        <div class="print-chart-row">
+          <div class="print-yaxis"><div>16</div><div>12</div><div>8</div><div>4</div><div>0</div></div>
+          <div class="print-chart">
+            <div class="print-bar-col"><div class="print-bar-val">0</div><div class="print-bar" style="height:0%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">8</div><div class="print-bar" style="height:50.0%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">5</div><div class="print-bar" style="height:31.3%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">7</div><div class="print-bar" style="height:43.8%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">7</div><div class="print-bar" style="height:43.8%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">5</div><div class="print-bar" style="height:31.3%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#33636B"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">0</div><div class="print-bar" style="height:0%;background:#33636B"></div></div>
+          </div>
+        </div>
+        <div class="print-xlabels">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+        </div>
+      </div>
+
+      <div class="print-chart-block">
+        <div class="print-chart-label" style="color:#9C4B3A">Tue45</div>
+        <div class="print-chart-row">
+          <div class="print-yaxis"><div>16</div><div>12</div><div>8</div><div>4</div><div>0</div></div>
+          <div class="print-chart">
+            <div class="print-bar-col"><div class="print-bar-val">0</div><div class="print-bar" style="height:0%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">9</div><div class="print-bar" style="height:56.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">5</div><div class="print-bar" style="height:31.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">0</div><div class="print-bar" style="height:0%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">0</div><div class="print-bar" style="height:0%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">3</div><div class="print-bar" style="height:18.8%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">15</div><div class="print-bar" style="height:93.8%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">5</div><div class="print-bar" style="height:31.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">2</div><div class="print-bar" style="height:12.5%;background:#9C4B3A"></div></div>
+            <div class="print-bar-col"><div class="print-bar-val">1</div><div class="print-bar" style="height:6.3%;background:#9C4B3A"></div></div>
+          </div>
+        </div>
+        <div class="print-xlabels">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>資料來源：SDGs 目標選擇統計・Mon23（49）／Tue23（49）／Tue45（50），合計 154 次選擇<br>目標 1–17：終結貧窮、消除飢餓、健康福祉、優質教育、性別平等、淨水衛生、可負擔能源、就業與經濟成長、產業創新與基礎建設、減少不平等、永續城市與社區、責任消費與生產、氣候行動、海洋生態、陸地生態、和平正義與制度、全球夥伴關係</footer>
+
+</div>
+
+<script>
+const DATA = {
+  "Mon23": [1,2,2,9,4,3,1,2,2,1,1,11,2,3,5,2,0],
+  "Tue23": [0,3,3,8,5,1,1,1,1,2,7,7,3,5,3,2,0],
+  "Tue45": [0,1,9,5,1,2,0,3,0,2,3,15,1,5,1,2,1]
+};
+const COLORS = {
+  "Mon23": "#9C6B2E",
+  "Tue23": "#33636B",
+  "Tue45": "#9C4B3A"
+};
+const MAX_SCALE = 16;
+
+const yAxis = document.getElementById('yAxis');
+[16,12,8,4,0].forEach(v => {
+  const s = document.createElement('div');
+  s.textContent = v;
+  yAxis.appendChild(s);
+});
+
+const xLabels = document.getElementById('xLabels');
+for (let i=1;i<=17;i++){
+  const s = document.createElement('span');
+  s.textContent = i;
+  xLabels.appendChild(s);
+}
+
+const chart = document.getElementById('chart');
+[0.25,0.5,0.75].forEach(frac => {
+  const g = document.createElement('div');
+  g.className = 'gridline';
+  g.style.bottom = (frac*100)+'%';
+  chart.appendChild(g);
+});
+
+const barEls = [];
+for (let i=0;i<17;i++){
+  const col = document.createElement('div');
+  col.className = 'bar-col';
+  const val = document.createElement('div');
+  val.className = 'bar-val';
+  const bar = document.createElement('div');
+  bar.className = 'bar';
+  col.appendChild(val);
+  col.appendChild(bar);
+  chart.appendChild(col);
+  barEls.push({val, bar});
+}
+
+function render(cls){
+  const data = DATA[cls];
+  const color = COLORS[cls];
+  data.forEach((v,i) => {
+    barEls[i].bar.style.height = (v/MAX_SCALE*100)+'%';
+    barEls[i].bar.style.background = color;
+    barEls[i].val.textContent = v;
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.class===cls));
+}
+
+const tabs = document.getElementById('tabs');
+Object.keys(DATA).forEach(cls => {
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn';
+  btn.dataset.class = cls;
+  btn.textContent = cls;
+  btn.onclick = () => render(cls);
+  tabs.appendChild(btn);
+});
+render('Mon23');
+</script>
+</body>
+</html>
